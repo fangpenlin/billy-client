@@ -22,6 +22,7 @@ lib64
 pip-log.txt
 
 # Unit test / coverage reports
+cover
 .coverage
 .tox
 nosetests.xml
@@ -29,7 +30,19 @@ nosetests.xml
 # Translations
 *.mo
 
-# Mr Developer
+# Mrs. Developer
 .mr.developer.cfg
 .project
 .pydevproject
+*.sublime-project
+*.sublime-workspace
+
+# virtualenv
+env
+
+# SQLite database
+*.db
+*.sqlite
+
+# Vagrant
+.vagrant
