@@ -25,6 +25,9 @@ class Resource(object):
         self.api = api
         self.json_data = json_data
 
+    def __unicode__(self):
+        return '<{} {}>'.format(self.__class__.__name__, self.json_data)
+
     def __getattr__(self, key):
         try:
             return self.json_data[key]

@@ -1,8 +1,29 @@
 from __future__ import unicode_literals
-import json
 import unittest
 
 from flexmock import flexmock
+
+
+class TestResource(unittest.TestCase):
+
+    def make_one(self, *args, **kwargs):
+        from billy_client.api import Resource
+        return Resource(*args, **kwargs)
+
+    def test_resource_to_unicode(self):
+        res = self.make_one(None, dict(key='value'))
+        self.assertEqual(unicode(res), "<Resource {'key': u'value'}>")
+
+    def test_resource_get_attr(self):
+        res = self.make_one(None, dict(key='value'))
+        self.assertEqual(res.key, 'value')
+        self.assertEqual(res.api, None)
+        self.assertEqual(res.json_data, dict(key='value'))
+
+    def test_resource_not_such_attr(self):
+        res = self.make_one(None, dict(key='value'))
+        with self.assertRaises(AttributeError):
+            print(res.no_such_thing)
 
 
 class TestAPI(unittest.TestCase):
