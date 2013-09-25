@@ -26,6 +26,9 @@ class Resource(object):
         self.json_data = json_data
 
     def __unicode__(self):
+        return str(self)
+
+    def __str__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.json_data)
 
     def __getattr__(self, key):
@@ -78,6 +81,31 @@ class Plan(Resource):
     """The plan entity object
 
     """
+    #: Daily frequency
+    FREQ_DAILY = 'daily'
+    #: Weekly frequency
+    FREQ_WEEKLY = 'weekly'
+    #: Monthly frequency
+    FREQ_MONTHLY = 'monthly'
+    #: Annually frequency
+    FREQ_YEARLY = 'yearly'
+
+    FREQ_ALL = [
+        FREQ_DAILY,
+        FREQ_WEEKLY,
+        FREQ_MONTHLY,
+        FREQ_YEARLY,
+    ]
+
+    #: Charging type plan
+    TYPE_CHARGE = 'charge'
+    #: Paying out type plan
+    TYPE_PAYOUT = 'payout'
+
+    TYPE_ALL = [
+        TYPE_CHARGE,
+        TYPE_PAYOUT, 
+    ]
 
 
 class BillyAPI(object):
@@ -115,13 +143,15 @@ class BillyAPI(object):
             if resp.status_code == requests.codes.not_found:
                 raise BillyNotFoundError(
                     'No such record for {} with code {}, msg{}'
-                    .format(method_name, resp.status_code, resp.content)
+                    .format(method_name, resp.status_code, resp.content),
+                    resp.status_code,
+                    resp.content,
                 )
             raise BillyError(
                 'Failed to process {} with code {}, msg {}'
                 .format(method_name, resp.status_code, resp.content),
-                code=resp.status_code,
-                msg=resp.content,
+                resp.status_code,
+                resp.content,
             )
 
     def create_company(self, processor_key):
