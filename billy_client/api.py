@@ -107,6 +107,37 @@ class Plan(Resource):
         TYPE_PAYOUT, 
     ]
 
+    def subscribe(
+        self, 
+        customer_guid, 
+        payment_uri=None, 
+        amount=None, 
+        started_at=None,
+    ):
+        """Subscribe a customer to this plan
+
+        """
+        url = self.api._url_for('/v1/subscriptions')
+        data = dict(
+            plan_guid=self.guid,
+            customer_guid=customer_guid,
+        )
+        if payment_uri is not None:
+            data['payment_uri'] = payment_uri
+        if amount is not None:
+            data['amount'] = amount 
+        if started_at is not None:
+            data['started_at'] = started_at.isoformat()
+        resp = requests.post(url, data=data, **self.api._auth_args())
+        self.api._check_response('subscribe', resp)
+        return Subscription(self.api, resp.json())
+
+
+class Subscription(Resource):
+    """The subscription entity object
+
+    """
+
 
 class BillyAPI(object):
     """Billy API is the object provides easy-to-use interface to Billy recurring
@@ -164,12 +195,52 @@ class BillyAPI(object):
         self.api_key = processor_key
         return Company(self, resp.json())
 
+    def _get_record(self, guid, path_name, method_name):
+        url = self._url_for('/v1/{}/{}'.format(path_name, guid))
+        resp = requests.get(url, **self._auth_args())
+        self._check_response(method_name, resp)
+        return Company(self, resp.json())
+
     def get_company(self, guid):
         """Find a company and return, if no such company exist, 
         BillyNotFoundError will be raised
 
         """
-        url = self._url_for('/v1/companies/{}'.format(guid))
-        resp = requests.get(url, **self._auth_args())
-        self._check_response('get_company', resp)
-        return Company(self, resp.json())
+        return self._get_record(
+            guid=guid, 
+            path_name='companies',
+            method_name='get_company',
+        )
+
+    def get_customer(self, guid):
+        """Find a customer and return, if no such customer exist, 
+        BillyNotFoundError will be raised
+
+        """
+        return self._get_record(
+            guid=guid, 
+            path_name='customers',
+            method_name='get_customer',
+        )
+
+    def get_plan(self, guid):
+        """Find a plan and return, if no such plan exist, 
+        BillyNotFoundError will be raised
+
+        """
+        return self._get_record(
+            guid=guid, 
+            path_name='plans',
+            method_name='get_plans',
+        )
+
+    def get_subscription(self, guid):
+        """Find a subscription and return, if no such subscription exist, 
+        BillyNotFoundError will be raised
+
+        """
+        return self._get_record(
+            guid=guid, 
+            path_name='subscriptions',
+            method_name='get_subscriptions',
+        )

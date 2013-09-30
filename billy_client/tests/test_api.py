@@ -37,7 +37,7 @@ class TestAPI(unittest.TestCase):
         from billy_client import BillyError
 
         mock_company_data = dict(
-            guid='CPMOCK_COMPANY',
+            guid='MOCK_COMPANY_GUID',
         )
 
         mock_response = flexmock(
@@ -60,7 +60,7 @@ class TestAPI(unittest.TestCase):
         import requests
 
         mock_company_data = dict(
-            guid='CPMOCK_COMPANY',
+            guid='MOCK_COMPANY_GUID',
         )
 
         mock_response = flexmock(
@@ -79,45 +79,46 @@ class TestAPI(unittest.TestCase):
 
         api = self.make_one(None, endpoint='http://localhost')
         company = api.create_company('MOCK_PROCESSOR_KEY')
-        self.assertEqual(company.guid, 'CPMOCK_COMPANY')
+        self.assertEqual(company.guid, 'MOCK_COMPANY_GUID')
         self.assertEqual(company.api, api)
 
-    def test_get_company(self):
+    def _test_get_record(self, method_name, path_name):
         import requests
 
-        mock_company_data = dict(
-            guid='CPMOCK_COMPANY',
+        mock_record_data = dict(
+            guid='MOCK_GUID',
         )
 
         mock_response = flexmock(
-            json=lambda: mock_company_data,
+            json=lambda: mock_record_data,
             status_code=200,
         )
 
         (
             flexmock(requests)
             .should_receive('get')
-            .with_args('http://localhost/v1/companies/CPMOCK_COMPANY', 
+            .with_args('http://localhost/v1/{}/MOCK_GUID'.format(path_name), 
                        auth=('MOCK_API_KEY', ''))
             .replace_with(lambda url, auth: mock_response)
             .once()
         )
 
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
-        company = api.get_company('CPMOCK_COMPANY')
-        self.assertEqual(company.guid, 'CPMOCK_COMPANY')
-        self.assertEqual(company.api, api)
+        method = getattr(api, method_name)
+        record = method('MOCK_GUID')
+        self.assertEqual(record.guid, 'MOCK_GUID')
+        self.assertEqual(record.api, api)
 
-    def test_get_company_not_found(self):
+    def _test_get_record_not_found(self, method_name, path_name):
         import requests
         from billy_client import BillyNotFoundError
 
-        mock_company_data = dict(
-            guid='CPMOCK_COMPANY',
+        mock_record_data = dict(
+            guid='MOCK_GUID',
         )
 
         mock_response = flexmock(
-            json=lambda: mock_company_data,
+            json=lambda: mock_record_data,
             status_code=404,
             content='Not found',
         )
@@ -125,15 +126,64 @@ class TestAPI(unittest.TestCase):
         (
             flexmock(requests)
             .should_receive('get')
-            .with_args('http://localhost/v1/companies/CPMOCK_COMPANY', 
+            .with_args('http://localhost/v1/{}/MOCK_GUID'.format(path_name), 
                        auth=('MOCK_API_KEY', ''))
             .replace_with(lambda url, auth: mock_response)
             .once()
         )
 
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        method = getattr(api, method_name)
         with self.assertRaises(BillyNotFoundError):
-            api.get_company('CPMOCK_COMPANY')
+            method('MOCK_GUID')
+
+    def test_get_company(self):
+        self._test_get_record(
+            method_name='get_company',
+            path_name='companies',
+        )
+
+    def test_get_company_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_company',
+            path_name='companies',
+        )
+
+    def test_get_customer(self):
+        self._test_get_record(
+            method_name='get_customer',
+            path_name='customers',
+        )
+
+    def test_get_customer_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_customer',
+            path_name='customers',
+        )
+
+    def test_get_plan(self):
+        self._test_get_record(
+            method_name='get_plan',
+            path_name='plans',
+        )
+
+    def test_get_plan_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_plan',
+            path_name='plans',
+        )
+
+    def test_get_subscription(self):
+        self._test_get_record(
+            method_name='get_subscription',
+            path_name='subscriptions',
+        )
+
+    def test_get_subscription_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_subscription',
+            path_name='subscriptions',
+        )
 
     def test_create_customer(self):
         import requests
@@ -183,7 +233,7 @@ class TestAPI(unittest.TestCase):
         company = Company(api, dict(guid='MOCK_COMPANY_GUID'))
 
         mock_plan_data = dict(
-            guid='PL_MOCK_PLAN',
+            guid='MOCK_PLAN_GUID',
         )
         mock_response = flexmock(
             json=lambda: mock_plan_data,
@@ -222,7 +272,7 @@ class TestAPI(unittest.TestCase):
             amount='55.66',
             interval=123,
         )
-        self.assertEqual(plan.guid, 'PL_MOCK_PLAN')
+        self.assertEqual(plan.guid, 'MOCK_PLAN_GUID')
 
         # NOTICE: as the flexmock is not checking the data parameter, so 
         # we need to do it here
@@ -232,4 +282,69 @@ class TestAPI(unittest.TestCase):
             frequency=Plan.FREQ_DAILY,
             amount='55.66',
             interval=123,
+        ))
+
+    def test_subscribe(self):
+        import datetime
+        import requests
+        from billy_client.api import Plan
+        from billy_client.api import Customer
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        customer = Customer(api, dict(guid='MOCK_CUSTOMER_GUID'))
+        plan = Plan(api, dict(guid='MOCK_PLAN_GUID'))
+        now = datetime.datetime.utcnow()
+
+        mock_subscription_data = dict(
+            guid='MOCK_SUBSCRIPTION_GUID',
+        )
+        mock_response = flexmock(
+            json=lambda: mock_subscription_data,
+            status_code=200,
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/subscriptions', 
+                # TODO: oddly... the data here is not compared
+                # you can modify data keys and values and it won't fail
+                # a bug of flexmock?
+                data=dict(
+                    plan_guid='MOCK_PLAN_GUID',
+                    customer_guid='MOCK_CUSTOMER_GUID',
+                    payment_uri='MOCK_PAYMENT_URI',
+                    amount='55.66',
+                    started_at=now.isoformat(),
+                ),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        subscription = plan.subscribe(
+            customer_guid='MOCK_CUSTOMER_GUID',
+            payment_uri='MOCK_PAYMENT_URI',
+            amount='55.66',
+            started_at=now,
+        )
+        self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
+
+        # NOTICE: as the flexmock is not checking the data parameter, so 
+        # we need to do it here
+        _, data, _ = post_calls[0]
+        self.assertEqual(data, dict(
+            plan_guid='MOCK_PLAN_GUID',
+            customer_guid='MOCK_CUSTOMER_GUID',
+            payment_uri='MOCK_PAYMENT_URI',
+            amount='55.66',
+            started_at=now.isoformat(),
         ))
