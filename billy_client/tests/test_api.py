@@ -331,7 +331,7 @@ class TestAPI(unittest.TestCase):
         )
 
         subscription = plan.subscribe(
-            customer_guid='MOCK_CUSTOMER_GUID',
+            customer_guid=customer.guid,
             payment_uri='MOCK_PAYMENT_URI',
             amount='55.66',
             started_at=now,
