@@ -348,3 +348,144 @@ class TestAPI(unittest.TestCase):
             amount='55.66',
             started_at=now.isoformat(),
         ))
+
+    def test_unsubscribe(self):
+        import requests
+        from billy_client.api import Subscription
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        subscription = Subscription(api, dict(guid='MOCK_SUBSCRIPTION_GUID'))
+
+        mock_subscription_data = dict(
+            guid='MOCK_SUBSCRIPTION_GUID',
+            canceled=True,
+        )
+        mock_response = flexmock(
+            json=lambda: mock_subscription_data,
+            status_code=200,
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/subscriptions/{}/cancel'
+                .format('MOCK_SUBSCRIPTION_GUID'), 
+                # TODO: oddly... the data here is not compared
+                # you can modify data keys and values and it won't fail
+                # a bug of flexmock?
+                data=dict(),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        subscription = subscription.unsubscribe()
+        self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
+        self.assertEqual(subscription.canceled, True)
+
+        # NOTICE: as the flexmock is not checking the data parameter, so 
+        # we need to do it here
+        _, data, _ = post_calls[0]
+        self.assertEqual(data, dict())
+
+    def test_unsubscribe_with_prorated_refund(self):
+        import requests
+        from billy_client.api import Subscription
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        subscription = Subscription(api, dict(guid='MOCK_SUBSCRIPTION_GUID'))
+
+        mock_subscription_data = dict(
+            guid='MOCK_SUBSCRIPTION_GUID',
+            canceled=True,
+        )
+        mock_response = flexmock(
+            json=lambda: mock_subscription_data,
+            status_code=200,
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/subscriptions/{}/cancel'
+                .format('MOCK_SUBSCRIPTION_GUID'), 
+                # TODO: oddly... the data here is not compared
+                # you can modify data keys and values and it won't fail
+                # a bug of flexmock?
+                data=dict(prorated_refund='1'),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        subscription = subscription.unsubscribe(prorated_refund=True)
+        self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
+        self.assertEqual(subscription.canceled, True)
+
+        # NOTICE: as the flexmock is not checking the data parameter, so 
+        # we need to do it here
+        _, data, _ = post_calls[0]
+        self.assertEqual(data, dict(prorated_refund='1'))
+
+    def test_unsubscribe_with_refund_amount(self):
+        import requests
+        from billy_client.api import Subscription
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        subscription = Subscription(api, dict(guid='MOCK_SUBSCRIPTION_GUID'))
+
+        mock_subscription_data = dict(
+            guid='MOCK_SUBSCRIPTION_GUID',
+            canceled=True,
+        )
+        mock_response = flexmock(
+            json=lambda: mock_subscription_data,
+            status_code=200,
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/subscriptions/{}/cancel'
+                .format('MOCK_SUBSCRIPTION_GUID'), 
+                # TODO: oddly... the data here is not compared
+                # you can modify data keys and values and it won't fail
+                # a bug of flexmock?
+                data=dict(refund_amount='123'),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        subscription = subscription.unsubscribe(refund_amount='123')
+        self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
+        self.assertEqual(subscription.canceled, True)
+
+        # NOTICE: as the flexmock is not checking the data parameter, so 
+        # we need to do it here
+        _, data, _ = post_calls[0]
+        self.assertEqual(data, dict(refund_amount='123'))

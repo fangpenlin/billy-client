@@ -138,6 +138,20 @@ class Subscription(Resource):
 
     """
 
+    def unsubscribe(self, prorated_refund=False, refund_amount=None):
+        """Unsubscribe the subscription
+
+        """
+        url = self.api._url_for('/v1/subscriptions/{}/cancel'.format(self.guid))
+        data = {}
+        if prorated_refund:
+            data['prorated_refund'] = str(int(prorated_refund))
+        if refund_amount:
+            data['refund_amount'] = refund_amount
+        resp = requests.post(url, data=data, **self.api._auth_args())
+        self.api._check_response('unsubscribe', resp)
+        return Subscription(self.api, resp.json())
+
 
 class BillyAPI(object):
     """Billy API is the object provides easy-to-use interface to Billy recurring
