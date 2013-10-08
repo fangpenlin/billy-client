@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import logging
 import urlparse
+import urllib
 
 import requests
 
@@ -29,6 +30,9 @@ class Resource(object):
         return str(self)
 
     def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.json_data)
 
     def __getattr__(self, key):
@@ -36,6 +40,40 @@ class Resource(object):
             return self.json_data[key]
         except KeyError:
             return super(Resource. self).__getattre__(key)
+
+
+class Page(object):
+    """Object for iterating over records via API
+
+    """
+
+    def __init__(self, api, url, resource_cls, logger=None):
+        self.logger = logger or logging.getLogger(__name__)
+        self.api = api
+        self.url = url
+        self.resource_cls = resource_cls
+
+    def __iter__(self):
+        data = {}
+        while True:
+            self.logger.debug(
+                'Page for %s getting %s', 
+                self.resource_cls.__name__,
+                data,
+            )
+            query = urllib.urlencode(data)
+            url = self.url + '?' + query
+            resp = requests.get(url, **self.api._auth_args())
+            json_data = resp.json()
+            self.logger.debug('Page result %r', json_data)
+            # TODO: we should improve the API to make iteration more efficient
+            #       add a next_url field or something like that
+            if not json_data['items']:
+                break
+            for item in json_data['items']:
+                yield self.resource_cls(self.api, item)
+            data['offset'] = json_data['offset'] + json_data['limit']
+            data['limit'] = json_data['limit']
 
 
 class Company(Resource):
@@ -237,6 +275,16 @@ class BillyAPI(object):
             method_name='get_customer',
         )
 
+    def list_customers(self):
+        """List customers
+
+        """
+        return Page(
+            api=self, 
+            url=self._url_for('/v1/customers'),
+            resource_cls=Customer,
+        )
+
     def get_plan(self, guid):
         """Find a plan and return, if no such plan exist, 
         BillyNotFoundError will be raised
@@ -248,6 +296,16 @@ class BillyAPI(object):
             method_name='get_plans',
         )
 
+    def list_plans(self):
+        """List plans
+
+        """
+        return Page(
+            api=self, 
+            url=self._url_for('/v1/plans'),
+            resource_cls=Plan,
+        )
+
     def get_subscription(self, guid):
         """Find a subscription and return, if no such subscription exist, 
         BillyNotFoundError will be raised
@@ -257,4 +315,14 @@ class BillyAPI(object):
             guid=guid, 
             path_name='subscriptions',
             method_name='get_subscriptions',
+        )
+
+    def list_subscriptions(self):
+        """List subscriptions
+
+        """
+        return Page(
+            api=self, 
+            url=self._url_for('/v1/subscriptions'),
+            resource_cls=Subscription,
         )

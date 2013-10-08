@@ -489,3 +489,110 @@ class TestAPI(unittest.TestCase):
         # we need to do it here
         _, data, _ = post_calls[0]
         self.assertEqual(data, dict(refund_amount='123'))
+
+    def _test_list_records(self, method_name, resource_url):
+        import urlparse
+        import requests
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+
+        result = [
+            dict(
+                offset=0, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID1'),
+                    dict(guid='MOCK_RECORD_GUID2'),
+                ],
+            ),
+            dict(
+                offset=2, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID3'),
+                    dict(guid='MOCK_RECORD_GUID4'),
+                ],
+            ),
+            dict(
+                offset=4, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID5'),
+                ],
+            ),
+            dict(
+                offset=6, 
+                limit=2, 
+                items=[],
+            ),
+        ]
+
+        get_calls = []
+
+        def mock_get(url, auth):
+            get_calls.append((url, auth))
+            mock_response = flexmock(
+                json=lambda: result[len(get_calls) - 1],
+                status_code=200,
+            )
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('get')
+            .replace_with(mock_get)
+            .times(4)
+        )
+
+        method = getattr(api, method_name)
+        records = method()
+        self.assertEqual(map(lambda r: r.guid, records), [
+            'MOCK_RECORD_GUID1',
+            'MOCK_RECORD_GUID2',
+            'MOCK_RECORD_GUID3',
+            'MOCK_RECORD_GUID4',
+            'MOCK_RECORD_GUID5',
+        ])
+
+        self.assertEqual(
+            map(lambda call: call[1], get_calls),
+            [('MOCK_API_KEY', '')] * 4,
+        )
+        self.assertEqual(
+            map(lambda call: call[0].split('?')[0], get_calls),
+            [resource_url] * 4,
+        )
+        qs_list = []
+        for url, _ in get_calls:
+            o = urlparse.urlparse(url)
+            query = urlparse.parse_qs(o.query)
+            # flatten all values
+            for k, v in query.iteritems():
+                query[k] = int(v[0])
+            qs_list.append(query)
+        self.assertEqual(
+            qs_list,
+            [
+                dict(),
+                dict(offset=2, limit=2),
+                dict(offset=4, limit=2),
+                dict(offset=6, limit=2),
+            ]
+        )
+
+    def test_list_customers(self):
+        self._test_list_records(
+            method_name='list_customers',
+            resource_url='http://localhost/v1/customers',
+        )
+
+    def test_list_plans(self):
+        self._test_list_records(
+            method_name='list_plans',
+            resource_url='http://localhost/v1/plans',
+        )
+
+    def test_list_subscriptions(self):
+        self._test_list_records(
+            method_name='list_subscriptions',
+            resource_url='http://localhost/v1/subscriptions',
+        )
