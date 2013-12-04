@@ -4,6 +4,9 @@ from .api import BillyNotFoundError
 from .api import Company
 from .api import Customer
 from .api import Plan
+from .api import Subscription
+from .api import Invoice
+from .api import Transaction
 
 __all__ = [
     BillyAPI,
@@ -12,4 +15,7 @@ __all__ = [
     Company,
     Customer,
     Plan,
+    Subscription,
+    Invoice,
+    Transaction,
 ]

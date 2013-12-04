@@ -185,6 +185,30 @@ class TestAPI(unittest.TestCase):
             path_name='subscriptions',
         )
 
+    def test_get_invoice(self):
+        self._test_get_record(
+            method_name='get_invoice',
+            path_name='invoices',
+        )
+
+    def test_get_invoice_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_invoice',
+            path_name='invoices',
+        )
+
+    def test_get_transaction(self):
+        self._test_get_record(
+            method_name='get_transaction',
+            path_name='transactions',
+        )
+
+    def test_get_transaction_not_found(self):
+        self._test_get_record_not_found(
+            method_name='get_transaction',
+            path_name='transactions',
+        )
+
     def test_create_customer(self):
         import requests
         from billy_client.api import Company
@@ -490,6 +514,94 @@ class TestAPI(unittest.TestCase):
         _, data, _ = post_calls[0]
         self.assertEqual(data, dict(refund_amount='123'))
 
+    def test_invoice(self):
+        import datetime
+        import requests
+        from billy_client.api import Customer
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        customer = Customer(api, dict(guid='MOCK_CUSTOMER_GUID'))
+        now = datetime.datetime.utcnow()
+
+        mock_invoice_data = dict(
+            guid='MOCK_INVOICE_GUID',
+        )
+        mock_response = flexmock(
+            json=lambda: mock_invoice_data,
+            status_code=200,
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/invoices', 
+                # TODO: oddly... the data here is not compared
+                # you can modify data keys and values and it won't fail
+                # a bug of flexmock?
+                data=dict(
+                    customer_guid='MOCK_CUSTOMER_GUID',
+                    amount='5566',
+                    items=[
+                        dict(name='foo', total=1234),
+                        dict(type='debit', name='bar', total=56, quantity=78, 
+                             amount=90, unit='unit'),
+                    ],
+                ),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        invoice = customer.invoice(
+            amount='55.66',
+            title='I want you bankrupt invoice',
+            payment_uri='MOCK_PAYMENT_URI',
+            items=[
+                dict(name='foo', total=1234),
+                dict(type='debit', name='bar', total=56, quantity=78, 
+                     amount=90, unit='unit'),
+            ],
+            adjustments=[
+                dict(total=-100, reason='A Lannister always pays his debts!'),
+                dict(total=20, reason='you own me'),
+            ],
+        )
+        self.assertEqual(invoice.guid, 'MOCK_INVOICE_GUID')
+
+        # NOTICE: as the flexmock is not checking the data parameter, so 
+        # we need to do it here
+        _, data, _ = post_calls[0]
+        self.assertEqual(data, dict(
+            customer_guid='MOCK_CUSTOMER_GUID',
+            payment_uri='MOCK_PAYMENT_URI',
+            title='I want you bankrupt invoice',
+            amount='55.66',
+            # item1
+            item_name0='foo',
+            item_total0='1234',
+            # item2
+            item_type1='debit',
+            item_name1='bar',
+            item_total1='56',
+            item_quantity1='78',
+            item_amount1='90',
+            item_unit1='unit',
+            # adjustment1
+            adjustment_total0='-100',
+            adjustment_reason0='A Lannister always pays his debts!',
+            # adjustment2
+            adjustment_total1='20',
+            adjustment_reason1='you own me',
+        ))
+
     def _test_list_records(self, method_name, resource_url):
         import urlparse
         import requests
@@ -595,4 +707,16 @@ class TestAPI(unittest.TestCase):
         self._test_list_records(
             method_name='list_subscriptions',
             resource_url='http://localhost/v1/subscriptions',
+        )
+
+    def test_list_invoices(self):
+        self._test_list_records(
+            method_name='list_invoices',
+            resource_url='http://localhost/v1/invoices',
+        )
+
+    def test_list_transactions(self):
+        self._test_list_records(
+            method_name='list_transactions',
+            resource_url='http://localhost/v1/transactions',
         )

@@ -114,6 +114,44 @@ class Customer(Resource):
 
     """
 
+    def _encode_params(self, prefix, items):
+        params = {}
+        for i, item in enumerate(items):
+            for key, value in item.iteritems():
+                param_key = unicode(prefix + '{}{}'.format(key, i))
+                params[param_key] = unicode(value)
+        return params 
+
+    def invoice(
+        self, 
+        amount, 
+        payment_uri=None,
+        title=None, 
+        items=None, 
+        adjustments=None, 
+    ):
+        """Create a invoice for this customer 
+
+        """
+        url = self.api._url_for('/v1/invoices')
+        data = dict(
+            customer_guid=self.guid,
+            amount=amount,
+        )
+        if payment_uri is not None:
+            data['payment_uri'] = payment_uri 
+        if title is not None:
+            data['title'] = title 
+        if items is not None:
+            params = self._encode_params('item_', items)
+            data.update(params)
+        if adjustments is not None:
+            params = self._encode_params('adjustment_', adjustments)
+            data.update(params)
+        resp = requests.post(url, data=data, **self.api._auth_args())
+        self.api._check_response('invoice', resp)
+        return Invoice(self.api, resp.json())
+
 
 class Plan(Resource):
     """The plan entity object
@@ -189,6 +227,18 @@ class Subscription(Resource):
         resp = requests.post(url, data=data, **self.api._auth_args())
         self.api._check_response('unsubscribe', resp)
         return Subscription(self.api, resp.json())
+
+
+class Invoice(Resource):
+    """The invoice entity object
+
+    """
+
+
+class Transaction(Resource):
+    """The transaction entity object
+
+    """
 
 
 class BillyAPI(object):
@@ -325,4 +375,46 @@ class BillyAPI(object):
             api=self, 
             url=self._url_for('/v1/subscriptions'),
             resource_cls=Subscription,
+        )
+
+    def get_invoice(self, guid):
+        """Find an invoice and return, if no such invoice exist, 
+        BillyNotFoundError will be raised
+
+        """
+        return self._get_record(
+            guid=guid, 
+            path_name='invoices',
+            method_name='get_invoice',
+        )
+
+    def list_invoices(self):
+        """List invoices
+
+        """
+        return Page(
+            api=self, 
+            url=self._url_for('/v1/invoices'),
+            resource_cls=Invoice,
+        )
+
+    def get_transaction(self, guid):
+        """Find a transaction and return, if no such transaction exist, 
+        BillyNotFoundError will be raised
+
+        """
+        return self._get_record(
+            guid=guid, 
+            path_name='transactions',
+            method_name='get_transactions',
+        )
+
+    def list_transactions(self):
+        """List transactions
+
+        """
+        return Page(
+            api=self, 
+            url=self._url_for('/v1/transactions'),
+            resource_cls=Transaction,
         )
