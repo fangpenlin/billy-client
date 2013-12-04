@@ -515,13 +515,11 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(data, dict(refund_amount='123'))
 
     def test_invoice(self):
-        import datetime
         import requests
         from billy_client.api import Customer
 
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
         customer = Customer(api, dict(guid='MOCK_CUSTOMER_GUID'))
-        now = datetime.datetime.utcnow()
 
         mock_invoice_data = dict(
             guid='MOCK_INVOICE_GUID',
