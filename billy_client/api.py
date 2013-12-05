@@ -12,8 +12,14 @@ class BillyError(RuntimeError):
     """
 
 
-class BillyNotFoundError(BillyError):
-    """Billy record not found error
+class NotFoundError(BillyError):
+    """Record not found error
+
+    """
+
+
+class DuplicateExternalIDError(BillyError):
+    """Duplicate external id error
 
     """
 
@@ -47,14 +53,15 @@ class Page(object):
 
     """
 
-    def __init__(self, api, url, resource_cls, logger=None):
+    def __init__(self, api, url, resource_cls, extra_query=None, logger=None):
         self.logger = logger or logging.getLogger(__name__)
         self.api = api
         self.url = url
         self.resource_cls = resource_cls
+        self.extra_query = extra_query
 
     def __iter__(self):
-        data = {}
+        data = self.extra_query.copy() if self.extra_query else {}
         while True:
             self.logger.debug(
                 'Page for %s getting %s', 
@@ -126,6 +133,7 @@ class Customer(Resource):
         self, 
         amount, 
         payment_uri=None,
+        external_id=None, 
         title=None, 
         items=None, 
         adjustments=None, 
@@ -142,6 +150,8 @@ class Customer(Resource):
             data['payment_uri'] = payment_uri 
         if title is not None:
             data['title'] = title 
+        if external_id is not None:
+            data['external_id'] = external_id 
         if items is not None:
             params = self._encode_params('item_', items)
             data.update(params)
@@ -149,6 +159,12 @@ class Customer(Resource):
             params = self._encode_params('adjustment_', adjustments)
             data.update(params)
         resp = requests.post(url, data=data, **self.api._auth_args())
+        if resp.status_code == requests.codes.conflict:
+            raise DuplicateExternalIDError(
+                'Invoice with the same external ID of this customer already exists',
+                resp.status_code,
+                resp.content,
+            )
         self.api._check_response('invoice', resp)
         return Invoice(self.api, resp.json())
 
@@ -274,7 +290,7 @@ class BillyAPI(object):
         """
         if resp.status_code != requests.codes.ok:
             if resp.status_code == requests.codes.not_found:
-                raise BillyNotFoundError(
+                raise NotFoundError(
                     'No such record for {} with code {}, msg{}'
                     .format(method_name, resp.status_code, resp.content),
                     resp.status_code,
@@ -305,7 +321,7 @@ class BillyAPI(object):
 
     def get_company(self, guid):
         """Find a company and return, if no such company exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(
@@ -316,7 +332,7 @@ class BillyAPI(object):
 
     def get_customer(self, guid):
         """Find a customer and return, if no such customer exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(
@@ -325,19 +341,23 @@ class BillyAPI(object):
             method_name='get_customer',
         )
 
-    def list_customers(self):
+    def list_customers(self, external_id=None):
         """List customers
 
         """
+        kwargs = {}
+        if external_id:
+            kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
             api=self, 
             url=self._url_for('/v1/customers'),
             resource_cls=Customer,
+            **kwargs
         )
 
     def get_plan(self, guid):
         """Find a plan and return, if no such plan exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(
@@ -358,7 +378,7 @@ class BillyAPI(object):
 
     def get_subscription(self, guid):
         """Find a subscription and return, if no such subscription exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(
@@ -379,7 +399,7 @@ class BillyAPI(object):
 
     def get_invoice(self, guid):
         """Find an invoice and return, if no such invoice exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(
@@ -388,19 +408,23 @@ class BillyAPI(object):
             method_name='get_invoice',
         )
 
-    def list_invoices(self):
+    def list_invoices(self, external_id=None):
         """List invoices
 
         """
+        kwargs = {}
+        if external_id:
+            kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
             api=self, 
             url=self._url_for('/v1/invoices'),
             resource_cls=Invoice,
+            **kwargs
         )
 
     def get_transaction(self, guid):
         """Find a transaction and return, if no such transaction exist, 
-        BillyNotFoundError will be raised
+        NotFoundError will be raised
 
         """
         return self._get_record(

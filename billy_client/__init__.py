@@ -1,6 +1,7 @@
 from .api import BillyAPI
 from .api import BillyError
-from .api import BillyNotFoundError
+from .api import NotFoundError
+from .api import DuplicateExternalIDError
 from .api import Company
 from .api import Customer
 from .api import Plan
@@ -11,7 +12,8 @@ from .api import Transaction
 __all__ = [
     BillyAPI,
     BillyError,
-    BillyNotFoundError,
+    NotFoundError,
+    DuplicateExternalIDError,
     Company,
     Customer,
     Plan,

@@ -111,7 +111,7 @@ class TestAPI(unittest.TestCase):
 
     def _test_get_record_not_found(self, method_name, path_name):
         import requests
-        from billy_client import BillyNotFoundError
+        from billy_client import NotFoundError
 
         mock_record_data = dict(
             guid='MOCK_GUID',
@@ -134,7 +134,7 @@ class TestAPI(unittest.TestCase):
 
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
         method = getattr(api, method_name)
-        with self.assertRaises(BillyNotFoundError):
+        with self.assertRaises(NotFoundError):
             method('MOCK_GUID')
 
     def test_get_company(self):
@@ -600,7 +600,52 @@ class TestAPI(unittest.TestCase):
             adjustment_reason1='you own me',
         ))
 
-    def _test_list_records(self, method_name, resource_url):
+    def test_invoice_with_duplicate_external_id(self):
+        import requests
+        from billy_client.api import Customer
+        from billy_client.api import DuplicateExternalIDError
+
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        customer = Customer(api, dict(guid='MOCK_CUSTOMER_GUID'))
+
+        mock_invoice_data = dict(
+            guid='MOCK_INVOICE_GUID',
+        )
+        mock_response = flexmock(
+            json=lambda: mock_invoice_data,
+            status_code=409,
+            content='Duplicate',
+        )
+
+        post_calls = []
+
+        def mock_post(url, data, auth):
+            post_calls.append((url, data, auth))
+            return mock_response
+
+        (
+            flexmock(requests)
+            .should_receive('post')
+            .with_args(
+                'http://localhost/v1/invoices', 
+                data=dict(
+                    customer_guid='MOCK_CUSTOMER_GUID',
+                    amount='5566',
+                ),
+                auth=('MOCK_API_KEY', ''),
+            )
+            .replace_with(mock_post)
+            .once()
+        )
+
+        with self.assertRaises(DuplicateExternalIDError):
+            customer.invoice(
+                amount='55.66',
+                payment_uri='MOCK_PAYMENT_URI',
+                external_id='duplaite one',
+            )
+
+    def _test_list_records(self, method_name, resource_url, external_id=False):
         import urlparse
         import requests
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
@@ -689,10 +734,15 @@ class TestAPI(unittest.TestCase):
             ]
         )
 
+        if external_id:
+            method(external_id='id')
+            # TODO: add some real test for external ID here
+
     def test_list_customers(self):
         self._test_list_records(
             method_name='list_customers',
             resource_url='http://localhost/v1/customers',
+            external_id=True,
         )
 
     def test_list_plans(self):
@@ -711,6 +761,7 @@ class TestAPI(unittest.TestCase):
         self._test_list_records(
             method_name='list_invoices',
             resource_url='http://localhost/v1/invoices',
+            external_id=True,
         )
 
     def test_list_transactions(self):
