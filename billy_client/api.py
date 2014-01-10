@@ -88,14 +88,14 @@ class Company(Resource):
 
     """
 
-    def create_customer(self, external_id=None):
+    def create_customer(self, processor_uri=None):
         """Create a customer for this company
 
         """
         url = self.api._url_for('/v1/customers')
         data = {}
-        if external_id is not None:
-            data['external_id'] = external_id
+        if processor_uri is not None:
+            data['processor_uri'] = processor_uri
         resp = requests.post(url, data=data, **self.api._auth_args())
         self.api._check_response('create_customer', resp)
         return Customer(self.api, resp.json())
@@ -132,7 +132,7 @@ class Customer(Resource):
     def invoice(
         self, 
         amount, 
-        payment_uri=None,
+        funding_instrument_uri=None,
         external_id=None, 
         title=None, 
         items=None, 
@@ -146,8 +146,8 @@ class Customer(Resource):
             customer_guid=self.guid,
             amount=amount,
         )
-        if payment_uri is not None:
-            data['payment_uri'] = payment_uri 
+        if funding_instrument_uri is not None:
+            data['funding_instrument_uri'] = funding_instrument_uri 
         if title is not None:
             data['title'] = title 
         if external_id is not None:
@@ -202,7 +202,7 @@ class Plan(Resource):
     def subscribe(
         self, 
         customer_guid, 
-        payment_uri=None, 
+        funding_instrument_uri=None, 
         amount=None, 
         started_at=None,
     ):
@@ -214,8 +214,8 @@ class Plan(Resource):
             plan_guid=self.guid,
             customer_guid=customer_guid,
         )
-        if payment_uri is not None:
-            data['payment_uri'] = payment_uri
+        if funding_instrument_uri is not None:
+            data['funding_instrument_uri'] = funding_instrument_uri
         if amount is not None:
             data['amount'] = amount 
         if started_at is not None:
@@ -230,18 +230,13 @@ class Subscription(Resource):
 
     """
 
-    def unsubscribe(self, prorated_refund=False, refund_amount=None):
-        """Unsubscribe the subscription
+    def cancel(self):
+        """Cancel the subscription
 
         """
         url = self.api._url_for('/v1/subscriptions/{}/cancel'.format(self.guid))
-        data = {}
-        if prorated_refund:
-            data['prorated_refund'] = str(int(prorated_refund))
-        if refund_amount:
-            data['refund_amount'] = refund_amount
-        resp = requests.post(url, data=data, **self.api._auth_args())
-        self.api._check_response('unsubscribe', resp)
+        resp = requests.post(url, **self.api._auth_args())
+        self.api._check_response('cancel', resp)
         return Subscription(self.api, resp.json())
 
 
@@ -249,6 +244,16 @@ class Invoice(Resource):
     """The invoice entity object
 
     """
+
+    def refund(self, amount):
+        """Issue a refund 
+
+        """
+        url = self.api._url_for('/v1/invoices/{}/refund'.format(self.guid))
+        data = dict(amount=amount)
+        resp = requests.post(url, data=data, **self.api._auth_args())
+        self.api._check_response('refund', resp)
+        return Subscription(self.api, resp.json())
 
 
 class Transaction(Resource):
