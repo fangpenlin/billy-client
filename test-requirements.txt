@@ -1,4 +1,4 @@
 nose
 nose-cov
-mock
+mock==0.8
 balanced==0.11.15
