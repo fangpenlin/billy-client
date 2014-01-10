@@ -58,8 +58,8 @@ class Resource(object):
         if external_id:
             kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
-            api=self, 
-            url=self._url_for(
+            api=self.api, 
+            url=self.api._url_for(
                 '{}/{}/{}'.format(self.BASE_URI, self.guid, resource_path)
             ),
             resource_cls=resource_cls,
@@ -113,7 +113,7 @@ class Company(Resource):
         """Create a customer for this company
 
         """
-        url = self.api._url_for('/v1/customers')
+        url = self.api._url_for(Customer.BASE_URI)
         data = {}
         if processor_uri is not None:
             data['processor_uri'] = processor_uri
@@ -125,7 +125,7 @@ class Company(Resource):
         """Create a plan for this company
 
         """
-        url = self.api._url_for('/v1/plans')
+        url = self.api._url_for(Plan.BASE_URI)
         data = dict(
             plan_type=plan_type,
             frequency=frequency,
@@ -142,7 +142,7 @@ class Customer(Resource):
 
     """
 
-    BASE_URI = '/v1/invoices'
+    BASE_URI = '/v1/customers'
 
     def _encode_params(self, prefix, items):
         params = {}
@@ -164,7 +164,7 @@ class Customer(Resource):
         """Create a invoice for this customer 
 
         """
-        url = self.api._url_for(self.BASE_URI)
+        url = self.api._url_for(Invoice.BASE_URI)
         data = dict(
             customer_guid=self.guid,
             amount=amount,
@@ -260,11 +260,12 @@ class Plan(Resource):
         funding_instrument_uri=None, 
         amount=None, 
         started_at=None,
+        appears_on_statement_as=None,
     ):
         """Subscribe a customer to this plan
 
         """
-        url = self.api._url_for('/v1/subscriptions')
+        url = self.api._url_for(Subscription.BASE_URI)
         data = dict(
             plan_guid=self.guid,
             customer_guid=customer_guid,
@@ -273,6 +274,8 @@ class Plan(Resource):
             data['funding_instrument_uri'] = funding_instrument_uri
         if amount is not None:
             data['amount'] = amount 
+        if appears_on_statement_as is not None:
+            data['appears_on_statement_as'] = appears_on_statement_as 
         if started_at is not None:
             data['started_at'] = started_at.isoformat()
         resp = requests.post(url, data=data, **self.api._auth_args())
@@ -325,11 +328,13 @@ class Subscription(Resource):
 
     """
 
+    BASE_URI = '/v1/subscriptions'
+
     def cancel(self):
         """Cancel the subscription
 
         """
-        url = self.api._url_for('/v1/subscriptions/{}/cancel'.format(self.guid))
+        url = self.api._url_for('{}/{}/cancel'.format(self.BASE_URI, self.guid))
         resp = requests.post(url, **self.api._auth_args())
         self.api._check_response('cancel', resp)
         return Subscription(self.api, resp.json())
@@ -360,11 +365,13 @@ class Invoice(Resource):
 
     """
 
+    BASE_URI = '/v1/invoices'
+
     def refund(self, amount):
         """Issue a refund 
 
         """
-        url = self.api._url_for('/v1/invoices/{}/refund'.format(self.guid))
+        url = self.api._url_for('{}/{}/refund'.format(self.BASE_URI, self.guid))
         data = dict(amount=amount)
         resp = requests.post(url, data=data, **self.api._auth_args())
         self.api._check_response('refund', resp)
@@ -440,8 +447,9 @@ class BillyAPI(object):
         url = self._url_for('/v1/companies')
         resp = requests.post(url, data=dict(processor_key=processor_key))
         self._check_response('create_company', resp)
-        self.api_key = processor_key
-        return Company(self, resp.json())
+        company = Company(self, resp.json())
+        self.api_key = company.api_key
+        return company
 
     def _get_record(self, guid, path_name, method_name):
         url = self._url_for('/v1/{}/{}'.format(path_name, guid))

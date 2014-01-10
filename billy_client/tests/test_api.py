@@ -58,7 +58,10 @@ class TestAPI(unittest.TestCase):
 
     @mock.patch('requests.post')
     def test_create_company(self, post_method):
-        mock_company_data = dict(guid='MOCK_COMPANY_GUID')
+        mock_company_data = dict(
+            guid='MOCK_COMPANY_GUID', 
+            api_key='MOCK_API_KEY',
+        )
         post_method.return_value = mock.Mock(
             json=lambda: mock_company_data,
             status_code=200,
@@ -69,6 +72,7 @@ class TestAPI(unittest.TestCase):
 
         self.assertEqual(company.guid, 'MOCK_COMPANY_GUID')
         self.assertEqual(company.api, api)
+        self.assertEqual(company.api.api_key, 'MOCK_API_KEY')
         post_method.assert_called_once_with(
             'http://localhost/v1/companies', 
             data=dict(processor_key='MOCK_PROCESSOR_KEY'),
@@ -255,8 +259,9 @@ class TestAPI(unittest.TestCase):
 
         subscription = plan.subscribe(
             customer_guid=customer.guid,
-            funding_instrument_uri='MOCK_funding_instrument_uri',
+            funding_instrument_uri='MOCK_INSTRUMENT_URI',
             amount='5566',
+            appears_on_statement_as='hello baby',
             started_at=now,
         )
         self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
@@ -266,7 +271,8 @@ class TestAPI(unittest.TestCase):
             data=dict(
                 plan_guid='MOCK_PLAN_GUID',
                 customer_guid='MOCK_CUSTOMER_GUID',
-                funding_instrument_uri='MOCK_funding_instrument_uri',
+                funding_instrument_uri='MOCK_INSTRUMENT_URI',
+                appears_on_statement_as='hello baby',
                 amount='5566',
                 started_at=now.isoformat(),
             ),
@@ -313,7 +319,7 @@ class TestAPI(unittest.TestCase):
         invoice = customer.invoice(
             amount='5566',
             title='I want you bankrupt invoice',
-            funding_instrument_uri='MOCK_funding_instrument_uri',
+            funding_instrument_uri='MOCK_INSTRUMENT_URI',
             items=[
                 dict(name='foo', amount=1234),
                 dict(type='debit', name='bar', amount=56, quantity=78, 
@@ -330,7 +336,7 @@ class TestAPI(unittest.TestCase):
             'http://localhost/v1/invoices', 
             data=dict(
                 customer_guid='MOCK_CUSTOMER_GUID',
-                funding_instrument_uri='MOCK_funding_instrument_uri',
+                funding_instrument_uri='MOCK_INSTRUMENT_URI',
                 title='I want you bankrupt invoice',
                 amount='5566',
                 # item1
@@ -479,6 +485,93 @@ class TestAPI(unittest.TestCase):
         call_auths = [kwargs['auth'] for _, kwargs in get_method.call_args_list]
         self.assertEqual([('MOCK_API_KEY', '')] * 4, call_auths)
 
+    @mock.patch('requests.get')
+    def _test_list_records_under_resource(
+        self, 
+        get_method, 
+        resource_cls,
+        method_name, 
+        resource_url, 
+        extra_query=None,
+    ):
+        api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
+        resource = resource_cls(api, dict(guid='MOCK_RESOURCE_GUID'))
+        result = [
+            dict(
+                offset=0, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID1'),
+                    dict(guid='MOCK_RECORD_GUID2'),
+                ],
+            ),
+            dict(
+                offset=2, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID3'),
+                    dict(guid='MOCK_RECORD_GUID4'),
+                ],
+            ),
+            dict(
+                offset=4, 
+                limit=2, 
+                items=[
+                    dict(guid='MOCK_RECORD_GUID5'),
+                ],
+            ),
+            dict(
+                offset=6, 
+                limit=2, 
+                items=[],
+            ),
+        ]
+        get_method.return_value = mock.Mock(
+            json=lambda: result.pop(0),
+            status_code=200,
+        )
+
+        method = getattr(resource, method_name)
+        extra_kwargs = extra_query if extra_query is not None else {}
+        records = method(**extra_kwargs)
+
+        self.assertEqual(map(lambda r: r.guid, records), [
+            'MOCK_RECORD_GUID1',
+            'MOCK_RECORD_GUID2',
+            'MOCK_RECORD_GUID3',
+            'MOCK_RECORD_GUID4',
+            'MOCK_RECORD_GUID5',
+        ])
+        # ensure url
+        call_urls = [
+            args[0].split('?')[0] 
+            for args, _ in get_method.call_args_list
+        ]
+        expected_url = resource_url.format('MOCK_RESOURCE_GUID')
+        self.assertEqual(call_urls, [expected_url] * 4)
+        # ensure query
+        qs_list = []
+        for args, _ in get_method.call_args_list:
+            o = urlparse.urlparse(args[0])
+            query = urlparse.parse_qs(o.query)
+            # flatten all values
+            for k, v in query.iteritems():
+                query[k] = v[0]
+            qs_list.append(query)
+        expected_querys = [
+            dict(),
+            dict(offset='2', limit='2'),
+            dict(offset='4', limit='2'),
+            dict(offset='6', limit='2'),
+        ]
+        if extra_kwargs:
+            for query in expected_querys:
+                query.update(extra_kwargs)
+        self.assertEqual(qs_list, expected_querys)
+        # ensure auth
+        call_auths = [kwargs['auth'] for _, kwargs in get_method.call_args_list]
+        self.assertEqual([('MOCK_API_KEY', '')] * 4, call_auths)
+
     def test_list_customers(self):
         self._test_list_records(
             method_name='list_customers',
@@ -509,4 +602,74 @@ class TestAPI(unittest.TestCase):
         self._test_list_records(
             method_name='list_transactions',
             resource_url='http://localhost/v1/transactions',
+        )
+
+    def test_list_plan_customer(self):
+        self._test_list_records_under_resource(
+            resource_cls=Plan,
+            method_name='list_customers',
+            resource_url='http://localhost/v1/plans/{}/customers',
+        )
+
+    def test_list_plan_subscription(self):
+        self._test_list_records_under_resource(
+            resource_cls=Plan,
+            method_name='list_subscriptions',
+            resource_url='http://localhost/v1/plans/{}/subscriptions',
+        )
+
+    def test_list_plan_invoice(self):
+        self._test_list_records_under_resource(
+            resource_cls=Plan,
+            method_name='list_invoices',
+            resource_url='http://localhost/v1/plans/{}/invoices',
+        )
+
+    def test_list_plan_transaction(self):
+        self._test_list_records_under_resource(
+            resource_cls=Plan,
+            method_name='list_transactions',
+            resource_url='http://localhost/v1/plans/{}/transactions',
+        )
+
+    def test_list_customer_subscription(self):
+        self._test_list_records_under_resource(
+            resource_cls=Customer,
+            method_name='list_subscriptions',
+            resource_url='http://localhost/v1/customers/{}/subscriptions',
+        )
+
+    def test_list_customer_invoice(self):
+        self._test_list_records_under_resource(
+            resource_cls=Customer,
+            method_name='list_invoices',
+            resource_url='http://localhost/v1/customers/{}/invoices',
+        )
+
+    def test_list_customer_transaction(self):
+        self._test_list_records_under_resource(
+            resource_cls=Customer,
+            method_name='list_transactions',
+            resource_url='http://localhost/v1/customers/{}/transactions',
+        )
+
+    def test_list_subscription_invoice(self):
+        self._test_list_records_under_resource(
+            resource_cls=Subscription,
+            method_name='list_invoices',
+            resource_url='http://localhost/v1/subscriptions/{}/invoices',
+        )
+
+    def test_list_subscription_transaction(self):
+        self._test_list_records_under_resource(
+            resource_cls=Subscription,
+            method_name='list_transactions',
+            resource_url='http://localhost/v1/subscriptions/{}/transactions',
+        )
+
+    def test_list_invoice_transaction(self):
+        self._test_list_records_under_resource(
+            resource_cls=Invoice,
+            method_name='list_transactions',
+            resource_url='http://localhost/v1/invoices/{}/transactions',
         )
