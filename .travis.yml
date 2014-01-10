@@ -5,7 +5,7 @@ python:
 install: 
   - "pip install flake8 --use-mirrors"
   - "pip install -r requirements.txt --use-mirrors"
-  - "pip install -r test_requirements.txt --use-mirrors"
+  - "pip install -r test-requirements.txt --use-mirrors"
   - "python setup.py develop"
 before_script: 
   - "flake8 billy_client --ignore=E501,W291,W293"
