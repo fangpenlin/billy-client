@@ -28,6 +28,8 @@ class Resource(object):
     """Resource object from the billy server
 
     """
+    BASE_URI = None
+
     def __init__(self, api, json_data):
         self.api = api
         self.json_data = json_data
@@ -46,6 +48,23 @@ class Resource(object):
             return self.json_data[key]
         except KeyError:
             return super(Resource. self).__getattre__(key)
+
+    def _list_resources(self, resource_cls, resource_path, external_id=None):
+        """List relative resources under of resource
+
+        """
+        assert self.BASE_URI is not None
+        kwargs = {}
+        if external_id:
+            kwargs['extra_query'] = dict(external_id=external_id)
+        return Page(
+            api=self, 
+            url=self._url_for(
+                '{}/{}/{}'.format(self.BASE_URI, self.guid, resource_path)
+            ),
+            resource_cls=resource_cls,
+            **kwargs
+        )
 
 
 class Page(object):
@@ -88,6 +107,8 @@ class Company(Resource):
 
     """
 
+    BASE_URI = '/v1/companies'
+
     def create_customer(self, processor_uri=None):
         """Create a customer for this company
 
@@ -121,6 +142,8 @@ class Customer(Resource):
 
     """
 
+    BASE_URI = '/v1/invoices'
+
     def _encode_params(self, prefix, items):
         params = {}
         for i, item in enumerate(items):
@@ -141,7 +164,7 @@ class Customer(Resource):
         """Create a invoice for this customer 
 
         """
-        url = self.api._url_for('/v1/invoices')
+        url = self.api._url_for(self.BASE_URI)
         data = dict(
             customer_guid=self.guid,
             amount=amount,
@@ -168,11 +191,43 @@ class Customer(Resource):
         self.api._check_response('invoice', resp)
         return Invoice(self.api, resp.json())
 
+    def list_subscriptions(self, external_id=None):
+        """List subscriptions
+
+        """
+        return self._list_resources(
+            resource_cls=Subscription, 
+            resource_path='subscriptions',
+            external_id=external_id,
+        )
+
+    def list_invoices(self, external_id=None):
+        """List invoices
+
+        """
+        return self._list_resources(
+            resource_cls=Invoice, 
+            resource_path='invoices',
+            external_id=external_id,
+        )
+
+    def list_transactions(self, external_id=None):
+        """List transactions
+
+        """
+        return self._list_resources(
+            resource_cls=Transaction, 
+            resource_path='transactions',
+            external_id=external_id,
+        )
+
 
 class Plan(Resource):
     """The plan entity object
 
     """
+    BASE_URI = '/v1/plans'
+
     #: Daily frequency
     FREQ_DAILY = 'daily'
     #: Weekly frequency
@@ -224,6 +279,46 @@ class Plan(Resource):
         self.api._check_response('subscribe', resp)
         return Subscription(self.api, resp.json())
 
+    def list_customers(self, external_id=None):
+        """List customers
+
+        """
+        return self._list_resources(
+            resource_cls=Customer, 
+            resource_path='customers',
+            external_id=external_id,
+        )
+
+    def list_subscriptions(self, external_id=None):
+        """List subscriptions
+
+        """
+        return self._list_resources(
+            resource_cls=Subscription, 
+            resource_path='subscriptions',
+            external_id=external_id,
+        )
+
+    def list_invoices(self, external_id=None):
+        """List invoices
+
+        """
+        return self._list_resources(
+            resource_cls=Invoice, 
+            resource_path='invoices',
+            external_id=external_id,
+        )
+
+    def list_transactions(self, external_id=None):
+        """List transactions
+
+        """
+        return self._list_resources(
+            resource_cls=Transaction, 
+            resource_path='transactions',
+            external_id=external_id,
+        )
+
 
 class Subscription(Resource):
     """The subscription entity object
@@ -238,6 +333,26 @@ class Subscription(Resource):
         resp = requests.post(url, **self.api._auth_args())
         self.api._check_response('cancel', resp)
         return Subscription(self.api, resp.json())
+
+    def list_invoices(self, external_id=None):
+        """List invoices
+
+        """
+        return self._list_resources(
+            resource_cls=Invoice, 
+            resource_path='invoices',
+            external_id=external_id,
+        )
+
+    def list_transactions(self, external_id=None):
+        """List transactions
+
+        """
+        return self._list_resources(
+            resource_cls=Transaction, 
+            resource_path='transactions',
+            external_id=external_id,
+        )
 
 
 class Invoice(Resource):
@@ -254,6 +369,16 @@ class Invoice(Resource):
         resp = requests.post(url, data=data, **self.api._auth_args())
         self.api._check_response('refund', resp)
         return Subscription(self.api, resp.json())
+
+    def list_transactions(self, external_id=None):
+        """List transactions
+
+        """
+        return self._list_resources(
+            resource_cls=Transaction, 
+            resource_path='transactions',
+            external_id=external_id,
+        )
 
 
 class Transaction(Resource):
