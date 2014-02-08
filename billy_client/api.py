@@ -160,6 +160,7 @@ class Customer(Resource):
         title=None, 
         items=None, 
         adjustments=None, 
+        appears_on_statement_as=None,
     ):
         """Create a invoice for this customer 
 
@@ -175,6 +176,8 @@ class Customer(Resource):
             data['title'] = title 
         if external_id is not None:
             data['external_id'] = external_id 
+        if appears_on_statement_as is not None:
+            data['appears_on_statement_as'] = appears_on_statement_as
         if items is not None:
             params = self._encode_params('item_', items)
             data.update(params)

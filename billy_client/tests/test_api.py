@@ -320,6 +320,7 @@ class TestAPI(unittest.TestCase):
             amount='5566',
             title='I want you bankrupt invoice',
             funding_instrument_uri='MOCK_INSTRUMENT_URI',
+            appears_on_statement_as='hi there',
             items=[
                 dict(name='foo', amount=1234),
                 dict(type='debit', name='bar', amount=56, quantity=78, 
@@ -338,6 +339,7 @@ class TestAPI(unittest.TestCase):
                 customer_guid='MOCK_CUSTOMER_GUID',
                 funding_instrument_uri='MOCK_INSTRUMENT_URI',
                 title='I want you bankrupt invoice',
+                appears_on_statement_as='hi there',
                 amount='5566',
                 # item1
                 item_name0='foo',
