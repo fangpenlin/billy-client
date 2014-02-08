@@ -23,7 +23,7 @@ class TestAgainstServer(unittest.TestCase):
             'ef13dce2093b11e388de026ba7d31e6f')
         self.marketplace_uri = os.environ.get(
             'BILLY_TEST_MARKETPLACE_URI', 
-            '/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg')
+            '/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA')
         balanced.configure(self.processor_key)
 
     def make_one(self, api_key, endpoint=None):
@@ -50,7 +50,7 @@ class TestAgainstServer(unittest.TestCase):
 
         customer = company.create_customer()
         plan = company.create_plan(
-            plan_type=Plan.TYPE_CHARGE,
+            plan_type=Plan.TYPE_DEBIT,
             frequency=Plan.FREQ_DAILY,
             amount=7788,
         )
@@ -95,7 +95,7 @@ class TestAgainstServer(unittest.TestCase):
         self.assertEqual(len(transactions), 2)
         transaction = transactions[0]
         self.assertEqual(transaction.invoice_guid, invoice.guid)
-        self.assertEqual(transaction.status, 'done')
+        self.assertEqual(transaction.submit_status, 'done')
         self.assertEqual(transaction.transaction_type, 'refund')
 
         # check the refund transaction in Balanced

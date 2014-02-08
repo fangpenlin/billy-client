@@ -244,14 +244,14 @@ class Plan(Resource):
         FREQ_YEARLY,
     ]
 
-    #: Charging type plan
-    TYPE_CHARGE = 'charge'
-    #: Paying out type plan
-    TYPE_PAYOUT = 'payout'
+    #: Debiting type plan
+    TYPE_DEBIT = 'debit'
+    #: Crediting type plan
+    TYPE_CREDIT = 'credit'
 
     TYPE_ALL = [
-        TYPE_CHARGE,
-        TYPE_PAYOUT, 
+        TYPE_DEBIT,
+        TYPE_CREDIT, 
     ]
 
     def subscribe(

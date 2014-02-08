@@ -226,7 +226,7 @@ class TestAPI(unittest.TestCase):
         post_method.return_value = mock_response
 
         plan = company.create_plan(
-            plan_type=Plan.TYPE_CHARGE,
+            plan_type=Plan.TYPE_DEBIT,
             frequency=Plan.FREQ_DAILY,
             amount='5566',
             interval=123,
@@ -236,7 +236,7 @@ class TestAPI(unittest.TestCase):
         post_method.assert_called_once_with(
             'http://localhost/v1/plans', 
             data=dict(
-                plan_type=Plan.TYPE_CHARGE,
+                plan_type=Plan.TYPE_DEBIT,
                 frequency=Plan.FREQ_DAILY,
                 amount='5566',
                 interval=123,
