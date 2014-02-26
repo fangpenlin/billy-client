@@ -1,7 +1,7 @@
 import os
 
-from distribute_setup import use_setuptools
-use_setuptools()
+import ez_setup
+ez_setup.use_setuptools()
 
 from setuptools import setup, find_packages
 
@@ -14,7 +14,7 @@ test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(
     name='billy-client',
-    version='0.0.1',
+    version='0.0.2',
     description='Recurring payment system client library',
     long_description=readme,
     classifiers=[
