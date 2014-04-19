@@ -59,7 +59,7 @@ class TestAPI(unittest.TestCase):
     @mock.patch('requests.post')
     def test_create_company(self, post_method):
         mock_company_data = dict(
-            guid='MOCK_COMPANY_GUID', 
+            guid='MOCK_COMPANY_GUID',
             api_key='MOCK_API_KEY',
         )
         post_method.return_value = mock.Mock(
@@ -74,7 +74,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(company.api, api)
         self.assertEqual(company.api.api_key, 'MOCK_API_KEY')
         post_method.assert_called_once_with(
-            'http://localhost/v1/companies', 
+            'http://localhost/v1/companies',
             data=dict(processor_key='MOCK_PROCESSOR_KEY'),
         )
 
@@ -94,7 +94,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(record.guid, 'MOCK_GUID')
         self.assertEqual(record.api, api)
         get_method.assert_called_once_with(
-            'http://localhost/v1/{}/MOCK_GUID'.format(path_name), 
+            'http://localhost/v1/{}/MOCK_GUID'.format(path_name),
             auth=('MOCK_API_KEY', '')
         )
 
@@ -116,7 +116,7 @@ class TestAPI(unittest.TestCase):
             method('MOCK_GUID')
 
         get_method.assert_called_once_with(
-            'http://localhost/v1/{}/MOCK_GUID'.format(path_name), 
+            'http://localhost/v1/{}/MOCK_GUID'.format(path_name),
             auth=('MOCK_API_KEY', '')
         )
 
@@ -198,7 +198,7 @@ class TestAPI(unittest.TestCase):
         company = Company(api, dict(guid='MOCK_COMPANY_GUID'))
         mock_customer_data = dict(guid='CUMOCK_CUSTOMER')
         mock_response = mock.Mock(
-            json=lambda: mock_customer_data, 
+            json=lambda: mock_customer_data,
             status_code=200,
         )
         post_method.return_value = mock_response
@@ -209,7 +209,7 @@ class TestAPI(unittest.TestCase):
 
         self.assertEqual(customer.guid, 'CUMOCK_CUSTOMER')
         post_method.assert_called_once_with(
-            'http://localhost/v1/customers', 
+            'http://localhost/v1/customers',
             data=dict(processor_uri='MOCK_BALANCED_CUSTOMER_URI'),
             auth=('MOCK_API_KEY', '')
         )
@@ -234,7 +234,7 @@ class TestAPI(unittest.TestCase):
 
         self.assertEqual(plan.guid, 'MOCK_PLAN_GUID')
         post_method.assert_called_once_with(
-            'http://localhost/v1/plans', 
+            'http://localhost/v1/plans',
             data=dict(
                 plan_type=Plan.TYPE_DEBIT,
                 frequency=Plan.FREQ_DAILY,
@@ -265,9 +265,9 @@ class TestAPI(unittest.TestCase):
             started_at=now,
         )
         self.assertEqual(subscription.guid, 'MOCK_SUBSCRIPTION_GUID')
-        
+       
         post_method.assert_called_once_with(
-            'http://localhost/v1/subscriptions', 
+            'http://localhost/v1/subscriptions',
             data=dict(
                 plan_guid='MOCK_PLAN_GUID',
                 customer_guid='MOCK_CUSTOMER_GUID',
@@ -299,7 +299,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(subscription.canceled, True)
         post_method.assert_called_once_with(
             'http://localhost/v1/subscriptions/{}/cancel'
-            .format('MOCK_SUBSCRIPTION_GUID'), 
+            .format('MOCK_SUBSCRIPTION_GUID'),
             auth=('MOCK_API_KEY', ''),
         )
 
@@ -323,7 +323,7 @@ class TestAPI(unittest.TestCase):
             appears_on_statement_as='hi there',
             items=[
                 dict(name='foo', amount=1234),
-                dict(type='debit', name='bar', amount=56, quantity=78, 
+                dict(type='debit', name='bar', amount=56, quantity=78,
                      volume=90, unit='unit'),
             ],
             adjustments=[
@@ -334,7 +334,7 @@ class TestAPI(unittest.TestCase):
 
         self.assertEqual(invoice.guid, 'MOCK_INVOICE_GUID')
         post_method.assert_called_once_with(
-            'http://localhost/v1/invoices', 
+            'http://localhost/v1/invoices',
             data=dict(
                 customer_guid='MOCK_CUSTOMER_GUID',
                 funding_instrument_uri='MOCK_INSTRUMENT_URI',
@@ -377,7 +377,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(invoice.guid, 'MOCK_INVOICE_GUID')
         post_method.assert_called_once_with(
             'http://localhost/v1/invoices/{}/refund'
-            .format('MOCK_INVOICE_GUID'), 
+            .format('MOCK_INVOICE_GUID'),
             data=dict(amount=999),
             auth=('MOCK_API_KEY', ''),
         )
@@ -405,40 +405,40 @@ class TestAPI(unittest.TestCase):
 
     @mock.patch('requests.get')
     def _test_list_records(
-        self, 
-        get_method, 
-        method_name, 
-        resource_url, 
+        self,
+        get_method,
+        method_name,
+        resource_url,
         extra_query=None,
     ):
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
         result = [
             dict(
-                offset=0, 
-                limit=2, 
+                offset=0,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID1'),
                     dict(guid='MOCK_RECORD_GUID2'),
                 ],
             ),
             dict(
-                offset=2, 
-                limit=2, 
+                offset=2,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID3'),
                     dict(guid='MOCK_RECORD_GUID4'),
                 ],
             ),
             dict(
-                offset=4, 
-                limit=2, 
+                offset=4,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID5'),
                 ],
             ),
             dict(
-                offset=6, 
-                limit=2, 
+                offset=6,
+                limit=2,
                 items=[],
             ),
         ]
@@ -460,7 +460,7 @@ class TestAPI(unittest.TestCase):
         ])
         # ensure url
         call_urls = [
-            args[0].split('?')[0] 
+            args[0].split('?')[0]
             for args, _ in get_method.call_args_list
         ]
         self.assertEqual(call_urls, [resource_url] * 4)
@@ -489,42 +489,42 @@ class TestAPI(unittest.TestCase):
 
     @mock.patch('requests.get')
     def _test_list_records_under_resource(
-        self, 
-        get_method, 
+        self,
+        get_method,
         resource_cls,
-        method_name, 
-        resource_url, 
+        method_name,
+        resource_url,
         extra_query=None,
     ):
         api = self.make_one('MOCK_API_KEY', endpoint='http://localhost')
         resource = resource_cls(api, dict(guid='MOCK_RESOURCE_GUID'))
         result = [
             dict(
-                offset=0, 
-                limit=2, 
+                offset=0,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID1'),
                     dict(guid='MOCK_RECORD_GUID2'),
                 ],
             ),
             dict(
-                offset=2, 
-                limit=2, 
+                offset=2,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID3'),
                     dict(guid='MOCK_RECORD_GUID4'),
                 ],
             ),
             dict(
-                offset=4, 
-                limit=2, 
+                offset=4,
+                limit=2,
                 items=[
                     dict(guid='MOCK_RECORD_GUID5'),
                 ],
             ),
             dict(
-                offset=6, 
-                limit=2, 
+                offset=6,
+                limit=2,
                 items=[],
             ),
         ]
@@ -546,7 +546,7 @@ class TestAPI(unittest.TestCase):
         ])
         # ensure url
         call_urls = [
-            args[0].split('?')[0] 
+            args[0].split('?')[0]
             for args, _ in get_method.call_args_list
         ]
         expected_url = resource_url.format('MOCK_RESOURCE_GUID')
@@ -578,7 +578,7 @@ class TestAPI(unittest.TestCase):
         self._test_list_records(
             method_name='list_customers',
             resource_url='http://localhost/v1/customers',
-            extra_query=dict(external_id='id'),
+            extra_query=dict(processor_uri='id'),
         )
 
     def test_list_plans(self):

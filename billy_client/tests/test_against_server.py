@@ -9,20 +9,20 @@ from billy_client import Plan
 
 
 @unittest.skipUnless(
-    os.environ.get('BILLY_CLIENT_TEST_AGAINST_SERVER'), 
+    os.environ.get('BILLY_CLIENT_TEST_AGAINST_SERVER'),
     'Skip testing against server unless BILLY_CLIENT_TEST_AGAINST_SERVER is set',
 )
 class TestAgainstServer(unittest.TestCase):
 
     def setUp(self):
         self.target_url = os.environ.get(
-            'BILLY_TEST_URL', 
+            'BILLY_TEST_URL',
             'http://127.0.0.1:6543')
         self.processor_key = os.environ.get(
-            'BILLY_TEST_PROCESSOR_KEY', 
+            'BILLY_TEST_PROCESSOR_KEY',
             'ef13dce2093b11e388de026ba7d31e6f')
         self.marketplace_uri = os.environ.get(
-            'BILLY_TEST_MARKETPLACE_URI', 
+            'BILLY_TEST_MARKETPLACE_URI',
             '/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA')
         balanced.configure(self.processor_key)
 
@@ -100,7 +100,7 @@ class TestAgainstServer(unittest.TestCase):
 
         # check the refund transaction in Balanced
         refund = balanced.Refund.find(transaction.processor_uri)
-        self.assertEqual(refund.meta['billy.transaction_guid'], 
+        self.assertEqual(refund.meta['billy.transaction_guid'],
                          transaction.guid)
         self.assertEqual(refund.amount, 1234)
         self.assertEqual(refund.status, 'succeeded')

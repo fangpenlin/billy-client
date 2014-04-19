@@ -49,14 +49,24 @@ class Resource(object):
         except KeyError:
             return super(Resource. self).__getattre__(key)
 
-    def _list_resources(self, resource_cls, resource_path, external_id=None):
+    def _list_resources(
+        self,
+        resource_cls,
+        resource_path,
+        external_id=None,
+        processor_uri=None,
+    ):
         """List relative resources under of resource
 
         """
         assert self.BASE_URI is not None
         kwargs = {}
-        if external_id:
-            kwargs['extra_query'] = dict(external_id=external_id)
+        if external_id or processor_uri:
+            kwargs['extra_query'] = {}
+            if external_id:
+                kwargs['extra_query']['external_id'] = external_id
+            if processor_uri:
+                kwargs['extra_query']['processor_uri'] = processor_uri
         return Page(
             api=self.api,
             url=self.api._url_for(
@@ -482,13 +492,13 @@ class BillyAPI(object):
             method_name='get_customer',
         )
 
-    def list_customers(self, external_id=None):
+    def list_customers(self, processor_uri=None):
         """List customers
 
         """
         kwargs = {}
-        if external_id:
-            kwargs['extra_query'] = dict(external_id=external_id)
+        if processor_uri:
+            kwargs['extra_query'] = dict(processor_uri=processor_uri)
         return Page(
             api=self,
             url=self._url_for('/v1/customers'),
