@@ -58,7 +58,7 @@ class Resource(object):
         if external_id:
             kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
-            api=self.api, 
+            api=self.api,
             url=self.api._url_for(
                 '{}/{}/{}'.format(self.BASE_URI, self.guid, resource_path)
             ),
@@ -83,7 +83,7 @@ class Page(object):
         data = self.extra_query.copy() if self.extra_query else {}
         while True:
             self.logger.debug(
-                'Page for %s getting %s', 
+                'Page for %s getting %s',
                 self.resource_cls.__name__,
                 data,
             )
@@ -150,19 +150,19 @@ class Customer(Resource):
             for key, value in item.iteritems():
                 param_key = unicode(prefix + '{}{}'.format(key, i))
                 params[param_key] = unicode(value)
-        return params 
+        return params
 
     def invoice(
-        self, 
-        amount, 
+        self,
+        amount,
         funding_instrument_uri=None,
-        external_id=None, 
-        title=None, 
-        items=None, 
-        adjustments=None, 
+        external_id=None,
+        title=None,
+        items=None,
+        adjustments=None,
         appears_on_statement_as=None,
     ):
-        """Create a invoice for this customer 
+        """Create a invoice for this customer
 
         """
         url = self.api._url_for(Invoice.BASE_URI)
@@ -171,11 +171,11 @@ class Customer(Resource):
             amount=amount,
         )
         if funding_instrument_uri is not None:
-            data['funding_instrument_uri'] = funding_instrument_uri 
+            data['funding_instrument_uri'] = funding_instrument_uri
         if title is not None:
-            data['title'] = title 
+            data['title'] = title
         if external_id is not None:
-            data['external_id'] = external_id 
+            data['external_id'] = external_id
         if appears_on_statement_as is not None:
             data['appears_on_statement_as'] = appears_on_statement_as
         if items is not None:
@@ -199,7 +199,7 @@ class Customer(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Subscription, 
+            resource_cls=Subscription,
             resource_path='subscriptions',
             external_id=external_id,
         )
@@ -209,7 +209,7 @@ class Customer(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Invoice, 
+            resource_cls=Invoice,
             resource_path='invoices',
             external_id=external_id,
         )
@@ -219,7 +219,7 @@ class Customer(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Transaction, 
+            resource_cls=Transaction,
             resource_path='transactions',
             external_id=external_id,
         )
@@ -254,14 +254,14 @@ class Plan(Resource):
 
     TYPE_ALL = [
         TYPE_DEBIT,
-        TYPE_CREDIT, 
+        TYPE_CREDIT,
     ]
 
     def subscribe(
-        self, 
-        customer_guid, 
-        funding_instrument_uri=None, 
-        amount=None, 
+        self,
+        customer_guid,
+        funding_instrument_uri=None,
+        amount=None,
         started_at=None,
         appears_on_statement_as=None,
     ):
@@ -276,9 +276,9 @@ class Plan(Resource):
         if funding_instrument_uri is not None:
             data['funding_instrument_uri'] = funding_instrument_uri
         if amount is not None:
-            data['amount'] = amount 
+            data['amount'] = amount
         if appears_on_statement_as is not None:
-            data['appears_on_statement_as'] = appears_on_statement_as 
+            data['appears_on_statement_as'] = appears_on_statement_as
         if started_at is not None:
             data['started_at'] = started_at.isoformat()
         resp = requests.post(url, data=data, **self.api._auth_args())
@@ -290,7 +290,7 @@ class Plan(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Customer, 
+            resource_cls=Customer,
             resource_path='customers',
             external_id=external_id,
         )
@@ -300,7 +300,7 @@ class Plan(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Subscription, 
+            resource_cls=Subscription,
             resource_path='subscriptions',
             external_id=external_id,
         )
@@ -310,7 +310,7 @@ class Plan(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Invoice, 
+            resource_cls=Invoice,
             resource_path='invoices',
             external_id=external_id,
         )
@@ -320,7 +320,7 @@ class Plan(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Transaction, 
+            resource_cls=Transaction,
             resource_path='transactions',
             external_id=external_id,
         )
@@ -347,7 +347,7 @@ class Subscription(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Invoice, 
+            resource_cls=Invoice,
             resource_path='invoices',
             external_id=external_id,
         )
@@ -357,7 +357,7 @@ class Subscription(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Transaction, 
+            resource_cls=Transaction,
             resource_path='transactions',
             external_id=external_id,
         )
@@ -371,7 +371,7 @@ class Invoice(Resource):
     BASE_URI = '/v1/invoices'
 
     def refund(self, amount):
-        """Issue a refund 
+        """Issue a refund
 
         """
         url = self.api._url_for('{}/{}/refund'.format(self.BASE_URI, self.guid))
@@ -385,7 +385,7 @@ class Invoice(Resource):
 
         """
         return self._list_resources(
-            resource_cls=Transaction, 
+            resource_cls=Transaction,
             resource_path='transactions',
             external_id=external_id,
         )
@@ -406,9 +406,9 @@ class BillyAPI(object):
     DEFAULT_ENDPOINT = 'https://billing.balancedpayments.com'
 
     def __init__(
-        self, 
+        self,
         api_key,
-        endpoint=DEFAULT_ENDPOINT, 
+        endpoint=DEFAULT_ENDPOINT,
         logger=None,
     ):
         self.logger = logger or logging.getLogger(__name__)
@@ -461,23 +461,23 @@ class BillyAPI(object):
         return Company(self, resp.json())
 
     def get_company(self, guid):
-        """Find a company and return, if no such company exist, 
+        """Find a company and return, if no such company exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='companies',
             method_name='get_company',
         )
 
     def get_customer(self, guid):
-        """Find a customer and return, if no such customer exist, 
+        """Find a customer and return, if no such customer exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='customers',
             method_name='get_customer',
         )
@@ -490,19 +490,19 @@ class BillyAPI(object):
         if external_id:
             kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
-            api=self, 
+            api=self,
             url=self._url_for('/v1/customers'),
             resource_cls=Customer,
             **kwargs
         )
 
     def get_plan(self, guid):
-        """Find a plan and return, if no such plan exist, 
+        """Find a plan and return, if no such plan exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='plans',
             method_name='get_plans',
         )
@@ -512,18 +512,18 @@ class BillyAPI(object):
 
         """
         return Page(
-            api=self, 
+            api=self,
             url=self._url_for('/v1/plans'),
             resource_cls=Plan,
         )
 
     def get_subscription(self, guid):
-        """Find a subscription and return, if no such subscription exist, 
+        """Find a subscription and return, if no such subscription exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='subscriptions',
             method_name='get_subscriptions',
         )
@@ -533,18 +533,18 @@ class BillyAPI(object):
 
         """
         return Page(
-            api=self, 
+            api=self,
             url=self._url_for('/v1/subscriptions'),
             resource_cls=Subscription,
         )
 
     def get_invoice(self, guid):
-        """Find an invoice and return, if no such invoice exist, 
+        """Find an invoice and return, if no such invoice exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='invoices',
             method_name='get_invoice',
         )
@@ -557,19 +557,19 @@ class BillyAPI(object):
         if external_id:
             kwargs['extra_query'] = dict(external_id=external_id)
         return Page(
-            api=self, 
+            api=self,
             url=self._url_for('/v1/invoices'),
             resource_cls=Invoice,
             **kwargs
         )
 
     def get_transaction(self, guid):
-        """Find a transaction and return, if no such transaction exist, 
+        """Find a transaction and return, if no such transaction exist,
         NotFoundError will be raised
 
         """
         return self._get_record(
-            guid=guid, 
+            guid=guid,
             path_name='transactions',
             method_name='get_transactions',
         )
@@ -579,7 +579,7 @@ class BillyAPI(object):
 
         """
         return Page(
-            api=self, 
+            api=self,
             url=self._url_for('/v1/transactions'),
             resource_cls=Transaction,
         )

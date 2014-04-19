@@ -14,7 +14,7 @@ test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(
     name='billy-client',
-    version='0.0.5',
+    version='0.0.6',
     description='Recurring payment system client library',
     long_description=readme,
     classifiers=[
